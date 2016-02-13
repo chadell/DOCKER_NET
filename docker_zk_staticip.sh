@@ -68,8 +68,6 @@ for (( i = 0; i < $NUM; i++ )); do
 	docker run -d --name="$CONTAINER$i" --net="$NET" --env="constraint:node==$NODE$i" gliderlabs/alpine sh -c "sleep 3000"
 done
 
-
-echo "*********Pinging from node0 to node0"
 eval $(docker-machine env host0)
 for (( i = 0; i < $NUM; i++ )); do
 	echo "*********Pinging from node0 to node$i"
