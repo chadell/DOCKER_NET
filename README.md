@@ -1,9 +1,8 @@
 Repository to play with Docker networking functionabilities to support Mesos - Eureka ecosystem
 
-ONGOING WORK
-* based on https://github.com/danigiri/docker-eureka
+ONGOING WORK - based on https://github.com/danigiri/docker-eureka
 
-- docker_eureka.sh : 
+docker_eureka.sh : 
 
 + HOST A
   - Eureka0 : Eureka node
@@ -22,6 +21,6 @@ Docker overlay networks:
 
 ____________________________________________
 PREVIOUS WORK
-- docker_3.sh : basic test of overlay networking across multiple hosts using Consul as Key-Value Store
-- docker_zookeper.sh : same as above but using Zookeeper as Key-Value Store
-- docker_zk_staticip : same as above but defining a specific IP network for the overlay network
+docker_3.sh : basic test of overlay networking across multiple hosts using Consul as Key-Value Store
+docker_zookeper.sh : same as above but using Zookeeper as Key-Value Store
+docker_zk_staticip : same as above but defining a specific IP network for the overlay network
