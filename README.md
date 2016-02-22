@@ -1,6 +1,7 @@
 Repository to play with Docker networking functionabilities to support Mesos - Eureka ecosystem
 
 ONGOING WORK
+* based on https://github.com/danigiri/docker-eureka
 
 - docker_eureka.sh : 
 
