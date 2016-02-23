@@ -4,10 +4,10 @@
 # consul without swarm
 
 NET="overlay_net"
-KS="keystore"
+KS="cs"
 NODE="demo"
 CONTAINER="node"
-NUM=5 #Number of Hosts and Nodes
+NUM=3 #Number of Hosts and Nodes
 
 
 echo "*********Set up a key-value store"
@@ -24,7 +24,7 @@ echo "*********Checking consul container, using tcp/8500"
 eval "$(docker-machine env "$KS")"
 docker ps
 
-echo "*********Creating 3 nodes"
+echo "*********Creating nodes"
 for (( i = 0; i < $NUM; i++ )); do
 	docker-machine create -d virtualbox \
 	--engine-opt="cluster-store=consul://$(docker-machine ip "$KS"):8500" \
@@ -43,7 +43,7 @@ docker network create --driver overlay "$NET"
 echo "*********Creating one container inside each node"
 for (( i = 0; i < $NUM; i++ )); do
 	eval $(docker-machine env "$NODE$i")
-	docker run -d --name="$CONTAINER$i" --net="$NET" --env="constraint:node==$NODE$i" gliderlabs/alpine sh -c "sleep 1000"
+	docker run -d --name="$CONTAINER$i" --net="$NET" --env="constraint:node==$NODE$i" gliderlabs/alpine sh -c "sleep 3000"
 done
 
 
