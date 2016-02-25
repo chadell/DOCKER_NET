@@ -5,13 +5,15 @@ SLEEP=1
 NETS="overlay_services"
 NETP="overlay_production"
 NUM=2 #Number of Hosts and Nodes
+[ -z "$WORKING_DIR" ] && WORKING_DIR=$(pwd)
+[ -z "$DNSMASQ_DIR" ] && DNSMASQ_DIR="$WORKING_DIR/../docker-dnsmasq"
 
 
-echo -e "*********Set up a Services Host"
-echo "*********Creating a virtualbox machine called HostZ"
+echo -e "********* Set up a Services Host"
+echo "********* Creating a virtualbox machine called HostZ"
 docker-machine create $DRIVER_OPTS "HostZ"
 
-echo "*********Start a Zookeeper Container running on the HostZ machine"
+echo "********* Start a Zookeeper Container running on the HostZ machine"
 docker $(docker-machine config "HostZ") run -d \
     -p "8181:8181" \
 	-p "2181:2181" \
@@ -20,7 +22,15 @@ docker $(docker-machine config "HostZ") run -d \
     -h "zookeeper" \
     jplock/zookeeper
 
-echo "*********Creating $NUM Hosts"
+echo "********* Start a Dnsmasq Container running on the HostZ machine"
+eval $(docker-machine env HostZ)
+cd "$DNSMASQ_DIR" && \
+docker build -t danigiri/docker-dnsmasq .
+echo "********* "
+cd "$WORKING_DIR"/dnsmasq && \
+docker build -t dnsmasq-eureka .
+
+echo "********* Creating $NUM Hosts"
 for (( i = 0; i < $NUM; i++ )); do
 	docker-machine create $DRIVER_OPTS \
 	--engine-opt="cluster-store=zk://$(docker-machine ip "HostZ"):2181" \
@@ -28,7 +38,7 @@ for (( i = 0; i < $NUM; i++ )); do
 	 "Host$i"
 done
 
-echo "*********Create the overlay network"
+echo "********* Create the overlay network"
 # it's only needed to create on one of the nodes of the cluster
 eval $(docker-machine env Host0)
 
@@ -46,7 +56,7 @@ docker network create --driver overlay \
 --ip-range=192.168.2.128/25 \
 "$NETP"
 
-echo "*********Creating one container inside each node and attaching to $NETS"
+echo "********* Creating one container inside each node and attaching to $NETS"
 for (( i = 0; i < $NUM; i++ )); do
 	eval $(docker-machine env "Host$i")
 	docker run -d --name="Node$i" --net="$NETS" --env="constraint:node==Host$i" gliderlabs/alpine sh -c "sleep 3000"
@@ -54,6 +64,6 @@ done
 
 eval $(docker-machine env Host0)
 for (( i = 0; i < $NUM; i++ )); do
-	echo "*********Pinging from Node0 to Node$i"
+	echo "********* Pinging from Node0 to Node$i"
 	docker exec "Node0" ping -c 2 "Node$i"
 done

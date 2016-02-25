@@ -1,5 +1,7 @@
 Repository to play with Docker networking functionabilities to support Mesos - Eureka ecosystem
 
+Following structure defined on https://github.com/github/scripts-to-rule-them-all
+
 ONGOING WORK - based on https://github.com/danigiri/docker-eureka
 
 docker_eureka.sh : 
@@ -11,7 +13,7 @@ docker_eureka.sh :
   - Eureka1 : Eureka node
   - Node1 : Working node
 + HOST Z
-  - Zookeper :  KV store
+  - Zookeeper :  KV store
   - Dnsmasq : DNS server to provide TXT records for Eureka
 
 Embedded Docker DNS will be used by default and forwarded to Dnsmasq for external resolving
