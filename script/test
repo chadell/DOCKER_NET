@@ -11,12 +11,12 @@ NUM=2 #Number of Hosts and Nodes
 pwd
 echo "====> Call Server Script"
 cd "$WORKING_DIR"
-/script/setup
+script/setup
 pwd
 
 echo "====> Call Server Script"
 cd "$WORKING_DIR"
-/script/server
+script/server
 
 eval $(docker-machine env Host0)
 for (( i = 0; i < $NUM; i++ )); do
