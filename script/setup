@@ -26,12 +26,10 @@ echo "********* Start a Dnsmasq Container running on the HostZ machine"
 eval $(docker-machine env HostZ)
 cd "$DNSMASQ_DIR" && \
 docker build -t danigiri/docker-dnsmasq .
-echo "********* "
+echo "********* dnsmasq-eureka"
 cd "$WORKING_DIR"/dnsmasq && \
 docker build -t dnsmasq-eureka .
 
-echo "====> Call Server Script"
-script/server
 
 echo "********* Creating $NUM Hosts"
 for (( i = 0; i < $NUM; i++ )); do
@@ -65,8 +63,8 @@ for (( i = 0; i < $NUM; i++ )); do
 	docker run -d --name="Node$i" --net="$NETS" --env="constraint:node==Host$i" gliderlabs/alpine sh -c "sleep 3000"
 done
 
-eval $(docker-machine env Host0)
-for (( i = 0; i < $NUM; i++ )); do
-	echo "********* Pinging from Node0 to Node$i"
-	docker exec "Node0" ping -c 2 "Node$i"
-done
+#eval $(docker-machine env Host0)
+#for (( i = 0; i < $NUM; i++ )); do
+#	echo "********* Pinging from Node0 to Node$i"
+#	docker exec "Node0" ping -c 2 "Node$i"
+#done
