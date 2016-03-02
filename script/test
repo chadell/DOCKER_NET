@@ -1,25 +1,23 @@
 #!/bin/bash
 
-DRIVER_OPTS="-d virtualbox"
-SLEEP=1
-NETS="overlay_services"
-NETP="overlay_production"
-NUM=2 #Number of Hosts and Nodes
-[ -z "$WORKING_DIR" ] && WORKING_DIR=$(pwd)
-[ -z "$DNSMASQ_DIR" ] && DNSMASQ_DIR="$WORKING_DIR/../docker-dnsmasq"
+# Set up the VARIABLES
+cd "$WORKING_DIR"
+source script/bootstrap
 
-pwd
-echo "====> Call Server Script"
+# Create the Hosts and the Containers for this test
+echo "====> Call Setup Script"
 cd "$WORKING_DIR"
 script/setup
-pwd
 
+# Configure Dnsmasq and Eureka servers
 echo "====> Call Server Script"
 cd "$WORKING_DIR"
 script/server
 
+echo "====> Executing tests..."
 eval $(docker-machine env Host0)
+echo "********* Pinging from Node0 to all the Eureka and Production nodes over the $NETS network"
 for (( i = 0; i < $NUM; i++ )); do
-	echo "********* Pinging from Node0 to Node$i"
-	docker exec "Node0" ping -c 2 "Node$i"
+	docker exec "Node0" ping -c 1 -I eth0 "Node${i}"
+	docker exec "Node0" ping -c 1 -I eth0 "Eureka${i}"
 done

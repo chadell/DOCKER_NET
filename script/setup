@@ -1,13 +1,8 @@
 #!/bin/bash
 
-DRIVER_OPTS="-d virtualbox"
-SLEEP=1
-NETS="overlay_services"
-NETP="overlay_production"
-NUM=2 #Number of Hosts and Nodes
-[ -z "$WORKING_DIR" ] && WORKING_DIR=$(pwd)
-[ -z "$DNSMASQ_DIR" ] && DNSMASQ_DIR="$WORKING_DIR/../docker-dnsmasq"
-
+# Set up the VARIABLES
+cd "$WORKING_DIR"
+source script/bootstrap
 
 echo -e "********* Set up a Services Host"
 echo "********* Creating a virtualbox machine called HostZ"
@@ -22,16 +17,14 @@ docker $(docker-machine config "HostZ") run -d \
     -h "zookeeper" \
     jplock/zookeeper
 
-echo "********* Start a Dnsmasq Container running on the HostZ machine"
+echo "********* Building container: dnsmasq-eureka"
 eval $(docker-machine env HostZ)
 cd "$DNSMASQ_DIR" && \
 docker build -t danigiri/docker-dnsmasq .
-echo "********* dnsmasq-eureka"
 cd "$WORKING_DIR"/dnsmasq && \
 docker build -t dnsmasq-eureka .
 
-
-echo "********* Creating $NUM Hosts"
+echo "********* Creating $NUM Hosts for Eureka and Production Nodes"
 for (( i = 0; i < $NUM; i++ )); do
 	docker-machine create $DRIVER_OPTS \
 	--engine-opt="cluster-store=zk://$(docker-machine ip "HostZ"):2181" \
@@ -39,10 +32,9 @@ for (( i = 0; i < $NUM; i++ )); do
 	 "Host$i"
 done
 
-echo "********* Create the overlay network"
+echo "********* Create the overlay networks"
 # it's only needed to create on one of the nodes of the cluster
 eval $(docker-machine env Host0)
-
 #https://docs.docker.com/engine/userguide/networking/work-with-networks/
 #https://docs.docker.com/engine/reference/commandline/network_create/
 docker network create --driver overlay \
@@ -59,12 +51,10 @@ docker network create --driver overlay \
 
 echo "********* Creating one container inside each node and attaching to $NETS"
 for (( i = 0; i < $NUM; i++ )); do
-	eval $(docker-machine env "Host$i")
-	docker run -d --name="Node$i" --net="$NETS" --env="constraint:node==Host$i" gliderlabs/alpine sh -c "sleep 3000"
+	eval $(docker-machine env "Host${i}")
+	docker run -d --name="Node${i}" --net="${NETS}" --env="constraint:node==Host${i}" gliderlabs/alpine sh -c "sleep 3000"
+	echo "********* Building container: docker-eureka"
+	cd "$WORKING_DIR"/eureka
+	docker build -t docker-eureka .
+	docker run -d --name="Eureka${i}" --net="${NETS}" --env="constraint:node==Eureka${i}" -p "808${i}":8080 docker-eureka
 done
-
-#eval $(docker-machine env Host0)
-#for (( i = 0; i < $NUM; i++ )); do
-#	echo "********* Pinging from Node0 to Node$i"
-#	docker exec "Node0" ping -c 2 "Node$i"
-#done
