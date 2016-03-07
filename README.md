@@ -4,7 +4,7 @@ Following structure defined on https://github.com/github/scripts-to-rule-them-al
 
 ONGOING WORK - based on https://github.com/danigiri/docker-eureka
 
-docker_eureka.sh : 
+./script/test : 
 
 + HOST A
   - Eureka0 : Eureka node
