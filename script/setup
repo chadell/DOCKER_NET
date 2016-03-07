@@ -5,17 +5,31 @@ cd "$WORKING_DIR"
 source script/bootstrap
 
 echo -e "********* Set up a Services Host"
-echo "********* Creating a virtualbox machine called HostZ"
-docker-machine create $DRIVER_OPTS "HostZ"
+echo "********* Creating a virtualbox machine called HostZ for the cluster services"
+docker-machine ls | grep "HostZ"
+if [ $? -ne 0 ] ; then
+	docker-machine create $DRIVER_OPTS "HostZ"
+else
+	echo "Not created because HostZ already exists :)"
+	: docker-machine start "HostZ"	
+fi
 
 echo "********* Start a Zookeeper Container running on the HostZ machine"
-docker $(docker-machine config "HostZ") run -d \
-    -p "8181:8181" \
-	-p "2181:2181" \
-	-p "2888:2888" \
-	-p "3888:3888" \
-    -h "zookeeper" \
-    jplock/zookeeper
+eval $(docker-machine env HostZ)
+docker ps | grep "jplock/zookeeper"
+if [ $? -ne 0 ] ; then
+	docker $(docker-machine config "HostZ") run -d \
+	    -p "8181:8181" \
+		-p "2181:2181" \
+		-p "2888:2888" \
+		-p "3888:3888" \
+	    -h "zookeeper" \
+	    jplock/zookeeper
+else
+	echo "Not created because Zookeeper already exists :)"
+	#potser l'hauria de arrancar?
+fi
+
 
 echo "********* Building container: dnsmasq-eureka"
 eval $(docker-machine env HostZ)
@@ -26,10 +40,17 @@ docker build -t dnsmasq-eureka .
 
 echo "********* Creating $NUM Hosts for Eureka and Production Nodes"
 for (( i = 0; i < $NUM; i++ )); do
-	docker-machine create $DRIVER_OPTS \
-	--engine-opt="cluster-store=zk://$(docker-machine ip "HostZ"):2181" \
-	--engine-opt="cluster-advertise=eth1:2376" \
-	 "Host$i"
+	docker-machine ls | grep "Host$i"
+	if [ $? -ne 0 ] ; then
+			docker-machine create $DRIVER_OPTS \
+			--engine-opt="cluster-store=zk://$(docker-machine ip "HostZ"):2181" \
+			--engine-opt="cluster-advertise=eth1:2376" \
+			 "Host$i"
+	else
+		echo "Not created because Host$i already exists :)"
+		: docker-machine start "Host$i"		
+		#potser l'hauria de arrancar i eliminar els containers anteriors?
+	fi			 
 done
 
 echo "********* Create the overlay networks"
@@ -37,24 +58,48 @@ echo "********* Create the overlay networks"
 eval $(docker-machine env Host0)
 #https://docs.docker.com/engine/userguide/networking/work-with-networks/
 #https://docs.docker.com/engine/reference/commandline/network_create/
-docker network create --driver overlay \
---subnet=192.168.1.0/24 \
---gateway=192.168.1.1 \
---ip-range=192.168.1.128/25 \
-"$NETS"
 
-docker network create --driver overlay \
---subnet=192.168.2.0/24 \
---gateway=192.168.2.1 \
---ip-range=192.168.2.128/25 \
-"$NETP"
+docker network ls | grep "$NETS"
+if [ $? -ne 0 ] ; then
+	docker network create --driver overlay \
+	--subnet=192.168.1.0/24 \
+	--gateway=192.168.1.1 \
+	--ip-range=192.168.1.128/25 \
+	"$NETS"
+else
+	echo "Not created because $NETS already exists :)"
+fi
+docker network ls | grep "$NETP"
+if [ $? -ne 0 ] ; then
+	docker network create --driver overlay \
+	--subnet=192.168.2.0/24 \
+	--gateway=192.168.2.1 \
+	--ip-range=192.168.2.128/25 \
+	"$NETP"
+else
+	echo "Not created because $NETP already exists :)"
+fi
 
-echo "********* Creating one container inside each node and attaching to $NETS"
+echo "********* Creating one container inside each Host"
 for (( i = 0; i < $NUM; i++ )); do
 	eval $(docker-machine env "Host${i}")
-	docker run -d --name="Node${i}" --net="${NETS}" --env="constraint:node==Host${i}" gliderlabs/alpine sh -c "sleep 3000"
-	echo "********* Building container: docker-eureka"
-	cd "$WORKING_DIR"/eureka
-	docker build -t docker-eureka .
-	docker run -d --name="Eureka${i}" --net="${NETS}" --env="constraint:node==Eureka${i}" -p "808${i}":8080 docker-eureka
+	docker ps -a | grep "Node${i}"
+	if [ $? -ne 0 ] ; then
+		docker run -d --name="Node${i}" --net="${NETS}" --env="constraint:node==Host${i}" gliderlabs/alpine sh -c "sleep 3000"
+		docker network connect "${NETP}" "Node${i}"
+	else
+		echo "Not created because Node${i} already exists :)"
+		: docker start "Node${i}"
+	fi	
+
+	docker ps -a | grep "Eureka${i}"
+	if [ $? -ne 0 ] ; then
+		echo "********* Building container: docker-eureka"
+		cd "$WORKING_DIR"/eureka
+		docker build -t docker-eureka .
+		docker run -d --name="Eureka${i}" --net="${NETS}" --env="constraint:node==Eureka${i}" -p "808${i}":8080 docker-eureka
+	else
+		echo "Not created because Eureka${i} already exists :)"
+		: docker start "Eureka${i}"
+	fi	
 done

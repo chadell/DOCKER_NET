@@ -10,14 +10,27 @@ cd "$WORKING_DIR"
 script/setup
 
 # Configure Dnsmasq and Eureka servers
-echo "====> Call Server Script"
-cd "$WORKING_DIR"
-script/server
+#echo "====> Call Server Script"
+#cd "$WORKING_DIR"
+#script/server
 
 echo "====> Executing tests..."
 eval $(docker-machine env Host0)
 echo "********* Pinging from Node0 to all the Eureka and Production nodes over the $NETS network"
 for (( i = 0; i < $NUM; i++ )); do
-	docker exec "Node0" ping -c 1 -I eth0 "Node${i}"
-	docker exec "Node0" ping -c 1 -I eth0 "Eureka${i}"
+	docker exec "Node0" ping -c 1 "Node${i}.$NETS"
+	docker exec "Node0" ping -c 1 "Eureka${i}.$NETS"
 done
+
+echo "********* Pinging from Node0 to all the Eureka and Production nodes over the $NETP network"
+for (( i = 0; i < $NUM; i++ )); do
+	docker exec "Node0" ping -c 1 "Node${i}.$NETP"
+	docker exec "Node0" ping -c 1 "Eureka${i}.$NETP"
+done
+
+eval $(docker-machine env Host0)
+#docker network inspect "${NETS}"
+#docker network inspect "${NETP}"
+eval $(docker-machine env Host1)
+#docker network inspect "${NETS}"
+#docker network inspect "${NETP}"
