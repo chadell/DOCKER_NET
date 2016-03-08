@@ -11,9 +11,10 @@ script/setup
 echo
 
 # Configure Dnsmasq and Eureka servers
-#echo "====> Call Server Script"
-#cd "$WORKING_DIR"
-#script/server
+echo "====> Call Server Script"
+cd "$WORKING_DIR"
+script/server
+
 echo
 echo "====> Executing tests..."
 eval $(docker-machine env Host0)
@@ -21,15 +22,15 @@ echo
 echo "********* Pinging from Node0 to all the Eureka and Production nodes over the $NETS network"
 echo
 for (( i = 0; i < $NUM; i++ )); do
-	docker exec "Node0" ping -c 1 "Node${i}.$NETS" | grep -E 'packets|PING'
-	docker exec "Node0" ping -c 1 "Eureka${i}.$NETS" | grep -E 'packets|PING'
+	docker exec "Node0" ping -c 1 -W 15 "Node${i}.$NETS" | grep -E 'packets|PING'
+	docker exec "Node0" ping -c 1 -W 15 "Eureka${i}.$NETS" | grep -E 'packets|PING'
 done
 echo
 echo "********* Pinging from Node0 to all the Eureka and Production nodes over the $NETP network"
 echo
 for (( i = 0; i < $NUM; i++ )); do
-	docker exec "Node0" ping -c 1 "Node${i}.$NETP" | grep -E 'packets|PING'
-	docker exec "Node0" ping -c 1 "Eureka${i}.$NETP" | grep -E 'packets|PING'
+	docker exec "Node0" ping -c 1 -W 15 "Node${i}.$NETP" | grep -E 'packets|PING'
+	docker exec "Node0" ping -c 1 -W 15 "Eureka${i}.$NETP" | grep -E 'packets|PING'
 done
 
 #eval $(docker-machine env Host0)

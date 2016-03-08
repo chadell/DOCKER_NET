@@ -1,7 +1,7 @@
 DRIVER_OPTS="-d virtualbox"
 SLEEP=1
-NETS="overlay_services"
-NETP="overlay_production"
+NETS="overlay_net_services"
+NETP="overlay_net_production"
 NUM=2 #Number of Hosts and Nodes
 [ -z "$WORKING_DIR" ] && WORKING_DIR=$(pwd)
 [ -z "$DNSMASQ_DIR" ] && DNSMASQ_DIR="$WORKING_DIR/../docker-dnsmasq"

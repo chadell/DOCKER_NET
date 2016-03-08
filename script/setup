@@ -30,13 +30,6 @@ else
 		docker start "zookeeper" >/dev/null 2>/dev/null
 fi
 
-echo "********* Building container: dnsmasq-eureka"
-eval $(docker-machine env HostZ)
-cd "$DNSMASQ_DIR" && \
-docker build -t danigiri/docker-dnsmasq . >/dev/null
-cd "$WORKING_DIR"/dnsmasq && \
-docker build -t dnsmasq-eureka . >/dev/null
-
 echo "********* Creating $NUM Hosts for Eureka and Production Nodes"
 for (( i = 0; i < $NUM; i++ )); do
 	docker-machine ls | grep "Host$i" >/dev/null
