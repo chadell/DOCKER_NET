@@ -6,19 +6,19 @@ source script/bootstrap
 
 echo -e "********* Set up a Services Host"
 echo "********* Creating a virtualbox machine called HostZ for the cluster services"
-docker-machine ls | grep "HostZ"
+docker-machine ls | grep "HostZ" >/dev/null
 if [ $? -ne 0 ] ; then
 	docker-machine create $DRIVER_OPTS "HostZ"
 else
-	echo "Not created because HostZ already exists :)"
-	: docker-machine start "HostZ"	
+	echo "Host Z not created because already exists :)"
+	docker-machine start "HostZ" >/dev/null 2>/dev/null
 fi
 
 echo "********* Start a Zookeeper Container running on the HostZ machine"
 eval $(docker-machine env HostZ)
-docker ps | grep "jplock/zookeeper"
+docker ps | grep "zookeeper" >/dev/null
 if [ $? -ne 0 ] ; then
-	docker $(docker-machine config "HostZ") run -d \
+	docker $(docker-machine config "HostZ") run -d --name="zookeeper" \
 	    -p "8181:8181" \
 		-p "2181:2181" \
 		-p "2888:2888" \
@@ -26,80 +26,77 @@ if [ $? -ne 0 ] ; then
 	    -h "zookeeper" \
 	    jplock/zookeeper
 else
-	echo "Not created because Zookeeper already exists :)"
-	#potser l'hauria de arrancar?
+	echo "Zookeeper not created because already exists :)"
+		docker start "zookeeper" >/dev/null 2>/dev/null
 fi
-
 
 echo "********* Building container: dnsmasq-eureka"
 eval $(docker-machine env HostZ)
 cd "$DNSMASQ_DIR" && \
-docker build -t danigiri/docker-dnsmasq .
+docker build -t danigiri/docker-dnsmasq . >/dev/null
 cd "$WORKING_DIR"/dnsmasq && \
-docker build -t dnsmasq-eureka .
+docker build -t dnsmasq-eureka . >/dev/null
 
 echo "********* Creating $NUM Hosts for Eureka and Production Nodes"
 for (( i = 0; i < $NUM; i++ )); do
-	docker-machine ls | grep "Host$i"
+	docker-machine ls | grep "Host$i" >/dev/null
 	if [ $? -ne 0 ] ; then
 			docker-machine create $DRIVER_OPTS \
 			--engine-opt="cluster-store=zk://$(docker-machine ip "HostZ"):2181" \
 			--engine-opt="cluster-advertise=eth1:2376" \
 			 "Host$i"
 	else
-		echo "Not created because Host$i already exists :)"
-		: docker-machine start "Host$i"		
-		#potser l'hauria de arrancar i eliminar els containers anteriors?
+		echo "Host$i not created because already exists :)"
+		docker-machine start "Host$i" >/dev/null 2>/dev/null
 	fi			 
 done
 
 echo "********* Create the overlay networks"
-# it's only needed to create on one of the nodes of the cluster
 eval $(docker-machine env Host0)
 #https://docs.docker.com/engine/userguide/networking/work-with-networks/
 #https://docs.docker.com/engine/reference/commandline/network_create/
 
-docker network ls | grep "$NETS"
+docker network ls | grep "$NETS" >/dev/null
 if [ $? -ne 0 ] ; then
 	docker network create --driver overlay \
 	--subnet=192.168.1.0/24 \
 	--gateway=192.168.1.1 \
 	--ip-range=192.168.1.128/25 \
-	"$NETS"
+	"$NETS" >/dev/null 
 else
-	echo "Not created because $NETS already exists :)"
+	echo "$NETS not created because already exists :)"
 fi
-docker network ls | grep "$NETP"
+docker network ls | grep "$NETP" >/dev/null
 if [ $? -ne 0 ] ; then
 	docker network create --driver overlay \
 	--subnet=192.168.2.0/24 \
 	--gateway=192.168.2.1 \
 	--ip-range=192.168.2.128/25 \
-	"$NETP"
+	"$NETP" >/dev/null
 else
-	echo "Not created because $NETP already exists :)"
+	echo "$NETP not created because already exists :)"
 fi
 
 echo "********* Creating one container inside each Host"
 for (( i = 0; i < $NUM; i++ )); do
 	eval $(docker-machine env "Host${i}")
-	docker ps -a | grep "Node${i}"
+	docker ps -a | grep "Node${i}" >/dev/null
 	if [ $? -ne 0 ] ; then
 		docker run -d --name="Node${i}" --net="${NETS}" --env="constraint:node==Host${i}" gliderlabs/alpine sh -c "sleep 3000"
 		docker network connect "${NETP}" "Node${i}"
 	else
-		echo "Not created because Node${i} already exists :)"
-		: docker start "Node${i}"
+		echo "Node${i} not created because already exists :)"
+		docker start "Node${i}" >/dev/null 2>/dev/null
 	fi	
 
-	docker ps -a | grep "Eureka${i}"
+	docker ps -a | grep "Eureka${i}" >/dev/null
 	if [ $? -ne 0 ] ; then
 		echo "********* Building container: docker-eureka"
 		cd "$WORKING_DIR"/eureka
-		docker build -t docker-eureka .
+		docker build -t docker-eureka . >/dev/null
 		docker run -d --name="Eureka${i}" --net="${NETS}" --env="constraint:node==Eureka${i}" -p "808${i}":8080 docker-eureka
 	else
-		echo "Not created because Eureka${i} already exists :)"
-		: docker start "Eureka${i}"
+		echo "Eureka${i} not created because already exists :)"
+		docker start "Eureka${i}" >/dev/null 2>/dev/null
 	fi	
 done
