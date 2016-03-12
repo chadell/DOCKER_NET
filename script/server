@@ -16,6 +16,10 @@ eval $(docker-machine env HostZ)
 
 docker ps -a | grep "dnsmasq" >/dev/null
 if [ $? -ne 0 ] ; then
+	echo "********* Cloning github dnsmasq config"
+	cd ".." && \
+	git clone https://github.com/danigiri/docker-dnsmasq.git >/dev/null 2>/dev/null
+
 	echo "********* Building container: dnsmasq-eureka"
 	cd "$DNSMASQ_DIR" && \
 	docker build -t danigiri/docker-dnsmasq . >/dev/null
